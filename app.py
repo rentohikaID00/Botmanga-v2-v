@@ -1,61 +1,74 @@
 import os
+import logging
 import easyocr
 import google.generativeai as genai
+from telegram import Update
+from telegram.ext import Application, MessageHandler, filters, ContextTypes
 from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
 
-# Ambil API KEY dari file .env
+# Load kunci-kunci rahasia
 load_dotenv()
-GENAI_API_KEY = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-# Set up Gemini
-genai.configure(api_key=GENAI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash') # Versi cepat dan irit limit
+# Inisialisasi OCR (Beban berat, jadi kita load di awal sekali saja)
+print("Sedang memuat model OCR (Jepang & Inggris)...")
+reader = easyocr.Reader(['en', 'ja'])
 
+# Fungsi Translate via Gemini
 def translate_teks(teks, asal):
-    prompt = f"Terjemahkan teks manga ini dari bahasa {asal} ke Bahasa Indonesia yang santai/gaul. Hasilnya cukup teks translasinya saja: {teks}"
+    prompt = f"Terjemahkan teks manga ini dari bahasa {asal} ke Bahasa Indonesia yang santai. Cukup hasil translasinya saja: {teks}"
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except:
-        return teks # Jika gagal translate, balikkan teks asli
+        return teks
 
-def eksekusi_bot(input_img, output_img):
-    # 1. Baca Gambar (Deteksi teks Inggris & Jepang)
-    reader = easyocr.Reader(['en', 'ja'])
-    results = reader.readtext(input_img)
-
-    img = Image.open(input_img).convert("RGB")
+# Fungsi Proses Gambar
+async def process_image(input_path, output_path):
+    img = Image.open(input_path).convert("RGB")
     draw = ImageDraw.Draw(img)
+    results = reader.readtext(input_path)
 
     for (bbox, text, prob) in results:
-        if prob < 0.3: continue # Abaikan kalau teks gak jelas
+        if prob < 0.3: continue
+        
+        x_min, y_min = map(int, bbox[0])
+        x_max, y_max = map(int, bbox[2])
 
-        # Ambil posisi kotak teks
-        x_min = min([p[0] for p in bbox])
-        y_min = min([p[1] for p in bbox])
-        x_max = max([p[0] for p in bbox])
-        y_max = max([p[1] for p in bbox])
-
-        # 2. Translate
+        # Translate
         bahasa_asal = "Jepang" if any(ord(c) > 127 for c in text) else "Inggris"
         hasil_indo = translate_teks(text, bahasa_asal)
-        print(f"Ori: {text} -> Indo: {hasil_indo}")
 
-        # 3. Hapus Teks Lama (Timpa Putih)
+        # Timpa kotak putih & tulis teks
         draw.rectangle([x_min, y_min, x_max, y_max], fill="white")
+        draw.text((x_min, y_min), hasil_indo, fill="black")
 
-        # 4. Tempel Teks Baru
-        try:
-            # Gunakan font bawaan jika file .ttf tidak ada
-            font = ImageFont.load_default() 
-            draw.text((x_min, y_min), hasil_indo, fill="black", font=font)
-        except:
-            draw.text((x_min, y_min), hasil_indo, fill="black")
+    img.save(output_path)
 
-    img.save(output_img)
-    print(f"Selesai! Cek file: {output_img}")
+# Handler saat user kirim foto
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Gambar diterima! Sedang diproses, tunggu bentar ya...")
+    
+    # Download foto
+    photo_file = await update.message.photo[-1].get_file()
+    input_p = "input.jpg"
+    output_p = "hasil.jpg"
+    await photo_file.download_to_drive(input_p)
 
-if __name__ == "__main__":
-    # Ganti 'manga.jpg' dengan nama file yang ingin kamu tes
-    eksekusi_bot("input.jpg", "hasil_output.jpg")
+    # Proses
+    try:
+        await process_image(input_p, output_p)
+        # Kirim balik
+        await update.message.reply_photo(photo=open(output_p, 'rb'), caption="Ini hasilnya bos!")
+    except Exception as e:
+        await update.message.reply_text(f"Waduh error: {e}")
+
+# Main program
+if __name__ == '__main__':
+    print("Bot Telegram Jalan...")
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    app.run_polling()
