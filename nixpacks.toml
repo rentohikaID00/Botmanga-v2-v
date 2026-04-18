@@ -1,5 +1,6 @@
 [phases.setup]
-nixPkgs = ["tesseract", "tessdata", "libGL", "glib"]
+nixPkgs = ["tesseract", "libGL", "glib"]
+aptPkgs = ["tesseract-ocr", "tesseract-ocr-jpn", "tesseract-ocr-jpn-vert", "tesseract-ocr-eng", "tesseract-ocr-ita", "tesseract-ocr-por", "libgl1"]
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
@@ -9,3 +10,4 @@ cmd = "python main.py"
 
 [variables]
 NIXPACKS_PYTHON_VERSION = "3.12"
+TESSDATA_PREFIX = "/usr/share/tesseract-ocr/5/tessdata"
