@@ -1,6 +1,5 @@
-python-telegram-bot==20.7
-pytesseract
-opencv-python-headless
+google-generativeai
+easyocr
 Pillow
-deep-translator
+python-dotenv
 numpy
