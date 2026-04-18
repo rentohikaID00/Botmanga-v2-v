@@ -9,14 +9,12 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# === COMMAND ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🤖 Bot Translate Manga\n\n"
         "Kirim gambar manga, nanti gue terjemahin ke Indonesia 👍"
     )
 
-# === HANDLE FOTO ===
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text("⏳ Lagi proses...")
 
@@ -42,7 +40,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(e)
         await msg.edit_text(f"❌ Error: {str(e)}")
 
-# === MAIN ===
 def main():
     if not BOT_TOKEN:
         raise ValueError("BOT_TOKEN belum diset")
@@ -50,10 +47,4 @@ def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-
-    print("Bot jalan...")
-    app.run_polling(drop_pending_updates=True)
-
-if __name__ == "__main__":
-    main()
+    app
