@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["tesseract", "tessdata", "libGL", "glib"]
+nixPkgs = ["python312", "tesseract", "tessdata", "libGL", "glib"]
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
