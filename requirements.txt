@@ -1,7 +1,6 @@
 python-telegram-bot==20.7
-deep-translator==1.11.4
-opencv-python-headless==4.10.0.84
-Pillow==10.4.0
-numpy==1.26.4
-pytesseract==0.3.10
-requests==2.31.0
+pytesseract
+opencv-python-headless
+Pillow
+deep-translator
+numpy
