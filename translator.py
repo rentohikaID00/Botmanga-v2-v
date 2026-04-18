@@ -53,6 +53,19 @@ def merge_overlapping(boxes, overlap_thresh=0.4):
             keep.append(box)
     return keep
 
+def check_tesseract():
+    """Cek apakah tesseract terinstall"""
+    try:
+        version = pytesseract.get_tesseract_version()
+        logger.info(f"Tesseract version: {version}")
+        langs = pytesseract.get_languages()
+        logger.info(f"Available languages: {langs}")
+    except Exception as e:
+        logger.error(f"Tesseract NOT found: {e}")
+
+# Cek saat module diload
+check_tesseract()
+
 def read_text(img_pil, x, y, w, h):
     padding = 8
     x1 = max(0, x - padding)
